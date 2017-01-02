@@ -7,6 +7,9 @@
  */
 
 (function () {
+    const ALIVE = true; // Done for backward compatibility, for now.
+    const DEAD = false;
+    const SICK = "S";
 
     var GOL = {
 
@@ -19,19 +22,16 @@
         running: false,
         autoplay: false,
 
-
         // Clear state
         clear: {
             schedule: false
         },
-
 
         // Average execution times
         times: {
             algorithm: 0,
             gui: 0
         },
-
 
         // DOM elements
         element: {
@@ -52,7 +52,6 @@
             current: true,
             schedule: false
         },
-
 
         // Grid style
         grid: {
@@ -76,7 +75,6 @@
                 }
             ]
         },
-
 
         // Zoom level
         zoom: {
@@ -105,7 +103,6 @@
             ]
         },
 
-
         // Cell colors
         colors: {
             current: 0,
@@ -115,24 +112,25 @@
                 {
                     dead: '#FFFFFF',
                     trail: ['#B5ECA2'],
-                    alive: ['#9898FF', '#8585FF', '#7272FF', '#5F5FFF', '#4C4CFF', '#3939FF', '#2626FF', '#1313FF', '#0000FF', '#1313FF', '#2626FF', '#3939FF', '#4C4CFF', '#5F5FFF', '#7272FF', '#8585FF']
+                    alive: ['#9898FF', '#8585FF', '#7272FF', '#5F5FFF', '#4C4CFF', '#3939FF', '#2626FF', '#1313FF', '#0000FF', '#1313FF', '#2626FF', '#3939FF', '#4C4CFF', '#5F5FFF', '#7272FF', '#8585FF'],
+                    sick: ['#4A0087']
                 },
 
                 {
                     dead: '#FFFFFF',
                     trail: ['#EE82EE', '#FF0000', '#FF7F00', '#FFFF00', '#008000 ', '#0000FF', '#4B0082'],
-                    alive: ['#FF0000', '#FF7F00', '#FFFF00', '#008000 ', '#0000FF', '#4B0082', '#EE82EE']
+                    alive: ['#FF0000', '#FF7F00', '#FFFF00', '#008000 ', '#0000FF', '#4B0082', '#EE82EE'],
+                    sick: ['#4A0087']
                 },
 
                 {
                     dead: '#FFFFFF',
                     trail: ['#9898FF', '#8585FF', '#7272FF', '#5F5FFF', '#4C4CFF', '#3939FF', '#2626FF', '#1313FF', '#0000FF', '#1313FF', '#2626FF', '#3939FF', '#4C4CFF', '#5F5FFF', '#7272FF', '#8585FF'],
-                    alive: ['#000000']
+                    alive: ['#000000'],
+                    sick: ['#4A0087']
                 }
-
             ]
         },
-
 
         /**
          * On Load Event
@@ -148,10 +146,9 @@
 
                 this.prepare();
             } catch (e) {
-                alert("Error: "+e);
+                alert("Error: " + e);
             }
         },
-
 
         /**
          * Load config from URL
@@ -188,7 +185,6 @@
             this.columns = this.zoom.schemes[this.zoom.current].columns;
         },
 
-
         /**
          * Load world state from URL parameter
          */
@@ -214,7 +210,6 @@
             }
         },
 
-
         /**
          * Create a random pattern
          */
@@ -229,7 +224,6 @@
             this.listLife.nextGeneration();
         },
 
-
         /**
          * Clean up actual state and prepare a new run
          */
@@ -237,7 +231,6 @@
             this.listLife.init(); // Reset/init algorithm
             this.prepare();
         },
-
 
         /**
          * Prepare DOM elements and Canvas for a new run
@@ -259,7 +252,6 @@
             }
         },
 
-
         /**
          * keepDOMElements
          * Save DOM references for this session (one time execution)
@@ -271,7 +263,6 @@
             this.element.messages.layout = document.getElementById('layoutMessages');
             this.element.hint = document.getElementById('hint');
         },
-
 
         /**
          * registerEvents
@@ -293,7 +284,6 @@
             this.helpers.registerEvent(document.getElementById('buttonColors'), 'click', this.handlers.buttons.colors, false);
         },
 
-
         /**
          * Run Next Step
          */
@@ -301,18 +291,12 @@
             var i, x, y, r, liveCellNumber, algorithmTime, guiTime;
 
             // Algorithm run
-
             algorithmTime = new Date();
-
             liveCellNumber = this.listLife.nextGeneration();
-
             algorithmTime = new Date() - algorithmTime;
 
-
             // Canvas run
-
             guiTime = new Date();
-
             for (i = 0; i < this.listLife.redrawList.length; i += 1) {
                 x = this.listLife.redrawList[i][0];
                 y = this.listLife.redrawList[i][1];
@@ -353,7 +337,7 @@
             this.element.generation.innerHTML = this.generation;
             this.element.livecells.innerHTML = liveCellNumber;
 
-            r = 1.0/this.generation;
+            r = 1.0 / this.generation;
             this.times.algorithm = (this.times.algorithm * (1 - r)) + (algorithmTime * r);
             this.times.gui = (this.times.gui * (1 - r)) + (guiTime * r);
             this.element.steptime.innerHTML = algorithmTime + ' / ' + guiTime + ' (' +
@@ -415,7 +399,6 @@
                     GOL.handlers.buttons.step();
                 }
             },
-
 
             buttons: {
                 run: function () {
@@ -507,9 +490,7 @@
                         document.getElementById('exportUrl').style.display = 'inline';
                     }
                 }
-
             }
-
         },
 
         canvas: {
@@ -522,7 +503,6 @@
             cellSpace: null,
 
             init: function () {
-
                 this.canvas = document.getElementById('canvas');
                 this.context = this.canvas.getContext('2d');
 
@@ -550,8 +530,6 @@
             },
 
             drawWorld: function () {
-                var i, j;
-
                 // Special no grid case
                 if (GOL.grid.schemes[GOL.grid.current].color === '') {
                     this.setNoGridOn();
@@ -572,12 +550,12 @@
                 this.context.fillStyle = GOL.grid.schemes[GOL.grid.current].color;
                 this.context.fillRect(0, 0, this.width, this.height);
 
-                for (i = 0 ; i < GOL.columns; i += 1) {
-                    for (j = 0 ; j < GOL.rows; j += 1) {
+                for (let i = 0; i < GOL.columns; i += 1) {
+                    for (let j = 0; j < GOL.rows; j += 1) {
                         if (GOL.listLife.isAlive(i, j)) {
-                            this.drawCell(i, j, true);
+                            this.drawCell(i, j, ALIVE);
                         } else {
-                            this.drawCell(i, j, false);
+                            this.drawCell(i, j, DEAD);
                         }
                     }
                 }
@@ -593,20 +571,25 @@
                 this.cellSpace = 1;
             },
 
-            drawCell: function (i, j, alive) {
-                if (alive) {
+            drawCell: function (i, j, status) {
+                if (status === ALIVE) {
 
                     if (this.age[i][j] > -1) {
                         this.context.fillStyle = GOL.colors.schemes[GOL.colors.current].alive[this.age[i][j] %
                             GOL.colors.schemes[GOL.colors.current].alive.length];
                     }
 
-                } else {
+                } else if (status === DEAD) {
                     if (GOL.trail.current && this.age[i][j] < 0) {
                         this.context.fillStyle = GOL.colors.schemes[GOL.colors.current].trail[(this.age[i][j] * -1) %
                             GOL.colors.schemes[GOL.colors.current].trail.length];
                     } else {
                         this.context.fillStyle = GOL.colors.schemes[GOL.colors.current].dead;
+                    }
+                } else if (status === SICK) {
+                    if (this.age[i][j] > -1) {
+                        this.context.fillStyle = GOL.colors.schemes[GOL.colors.current].sick[this.age[i][j] %
+                            GOL.colors.schemes[GOL.colors.current].sick.length];
                     }
                 }
 
@@ -616,10 +599,10 @@
             },
 
             switchCell: function (i, j) {
-                if(GOL.listLife.isAlive(i, j)) {
+                if (GOL.listLife.isAlive(i, j)) {
                     this.changeCelltoDead(i, j);
                     GOL.listLife.removeCell(i, j, GOL.listLife.actualState);
-                }else {
+                } else {
                     this.changeCelltoAlive(i, j);
                     GOL.listLife.addCell(i, j, GOL.listLife.actualState);
                 }
@@ -628,21 +611,21 @@
             keepCellAlive: function (i, j) {
                 if (i >= 0 && i < GOL.columns && j >=0 && j < GOL.rows) {
                     this.age[i][j] += 1;
-                    this.drawCell(i, j, true);
+                    this.drawCell(i, j, ALIVE);
                 }
             },
 
             changeCelltoAlive: function (i, j) {
                 if (i >= 0 && i < GOL.columns && j >=0 && j < GOL.rows) {
                     this.age[i][j] = 1;
-                    this.drawCell(i, j, true);
+                    this.drawCell(i, j, ALIVE);
                 }
             },
 
             changeCelltoDead: function (i, j) {
                 if (i >= 0 && i < GOL.columns && j >=0 && j < GOL.rows) {
                     this.age[i][j] = -this.age[i][j]; // Keep trail
-                    this.drawCell(i, j, false);
+                    this.drawCell(i, j, DEAD);
                 }
             }
 
@@ -757,7 +740,6 @@
                 return alive;
             },
 
-
             topPointer: 1,
             middlePointer: 1,
             bottomPointer: 1,
@@ -766,25 +748,25 @@
                 var neighbours = 0, k;
 
                 // Top
-                if (this.actualState[i-1] !== undefined) {
-                    if (this.actualState[i-1][0] === (y - 1)) {
+                if (this.actualState[i - 1] !== undefined) {
+                    if (this.actualState[i - 1][0] === (y - 1)) {
                         for (k = this.topPointer; k < this.actualState[i - 1].length; k += 1) {
 
-                            if (this.actualState[i-1][k] >= (x - 1)) {
+                            if (this.actualState[i - 1][k] >= (x - 1)) {
 
-                                if (this.actualState[i-1][k] === (x - 1)) {
+                                if (this.actualState[i - 1][k] === (x - 1)) {
                                     possibleNeighboursList[0] = undefined;
                                     this.topPointer = k + 1;
                                     neighbours += 1;
                                 }
 
-                                if (this.actualState[i-1][k] === x) {
+                                if (this.actualState[i - 1][k] === x) {
                                     possibleNeighboursList[1] = undefined;
                                     this.topPointer = k;
                                     neighbours += 1;
                                 }
 
-                                if (this.actualState[i-1][k] === (x + 1)) {
+                                if (this.actualState[i - 1][k] === (x + 1)) {
                                     possibleNeighboursList[2] = undefined;
 
                                     if (k == 1) {
@@ -796,7 +778,7 @@
                                     neighbours += 1;
                                 }
 
-                                if (this.actualState[i-1][k] > (x + 1)) {
+                                if (this.actualState[i - 1][k] > (x + 1)) {
                                     break;
                                 }
                             }
@@ -825,24 +807,24 @@
                 }
 
                 // Bottom
-                if (this.actualState[i+1] !== undefined) {
-                    if (this.actualState[i+1][0] === (y + 1)) {
-                        for (k = this.bottomPointer; k < this.actualState[i+1].length; k += 1) {
-                            if (this.actualState[i+1][k] >= (x - 1)) {
+                if (this.actualState[i + 1] !== undefined) {
+                    if (this.actualState[i + 1][0] === (y + 1)) {
+                        for (k = this.bottomPointer; k < this.actualState[i + 1].length; k += 1) {
+                            if (this.actualState[i + 1][k] >= (x - 1)) {
 
-                                if (this.actualState[i+1][k] === (x - 1)) {
+                                if (this.actualState[i + 1][k] === (x - 1)) {
                                     possibleNeighboursList[5] = undefined;
                                     this.bottomPointer = k + 1;
                                     neighbours += 1;
                                 }
 
-                                if (this.actualState[i+1][k] === x) {
+                                if (this.actualState[i + 1][k] === x) {
                                     possibleNeighboursList[6] = undefined;
                                     this.bottomPointer = k;
                                     neighbours += 1;
                                 }
 
-                                if (this.actualState[i+1][k] === (x + 1)) {
+                                if (this.actualState[i + 1][k] === (x + 1)) {
                                     possibleNeighboursList[7] = undefined;
 
                                     if (k == 1) {
@@ -854,7 +836,7 @@
                                     neighbours += 1;
                                 }
 
-                                if (this.actualState[i+1][k] > (x + 1)) {
+                                if (this.actualState[i + 1][k] > (x + 1)) {
                                     break;
                                 }
                             }
@@ -866,11 +848,9 @@
             },
 
             isAlive: function (x, y) {
-                var i, j;
-
-                for (i = 0; i < this.actualState.length; i += 1) {
+                for (let i = 0; i < this.actualState.length; i += 1) {
                     if (this.actualState[i][0] === y) {
-                        for (j = 1; j < this.actualState[i].length; j += 1) {
+                        for (let j = 1; j < this.actualState[i].length; j += 1) {
                             if (this.actualState[i][j] === x) {
                                 return true;
                             }
@@ -885,7 +865,6 @@
 
                 for (i = 0; i < state.length; i += 1) {
                     if (state[i][0] === y) {
-
                         if (state[i].length === 2) { // Remove all Row
                             state.splice(i, 1);
                         } else { // Remove Element
@@ -908,9 +887,9 @@
                 var k, n, m, tempRow, newState = [], added;
 
                 if (y < state[0][0]) { // Add to Head
-                    newState = [[y,x]];
+                    newState = [[y, x]];
                     for (k = 0; k < state.length; k += 1) {
-                        newState[k+1] = state[k];
+                        newState[k + 1] = state[k];
                     }
 
                     for (k = 0; k < newState.length; k += 1) {
@@ -949,11 +928,11 @@
                             for (k = 0; k < state.length; k += 1) {
                                 if (k === n) {
                                     newState[k] = [y,x];
-                                    newState[k+1] = state[k];
+                                    newState[k + 1] = state[k];
                                 } else if (k < n) {
                                     newState[k] = state[k];
                                 } else if (k > n) {
-                                    newState[k+1] = state[k];
+                                    newState[k + 1] = state[k];
                                 }
                             }
 
