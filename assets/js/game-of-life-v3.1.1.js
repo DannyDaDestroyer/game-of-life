@@ -355,7 +355,6 @@
             }
         },
 
-
         handlers: {
 
             mouseDown: false,
@@ -640,7 +639,6 @@
                 this.actualState = [];
             },
 
-
             /**
                 NOTE: The following code is slower than the used one.
 
@@ -669,7 +667,6 @@
                     }
                 }
             */
-
             nextGeneration: function () {
                 var x, y, i, j, m, n, key, t1, t2, alive = 0;
                 var neighbours, deadNeighbours, allDeadNeighbours = {}, newState = [];
