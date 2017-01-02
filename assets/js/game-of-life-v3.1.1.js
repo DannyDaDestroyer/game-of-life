@@ -45,7 +45,7 @@
         },
 
         // Initial state
-        initialState: '[{"39":[110]},{"40":[112]},{"41":[109,110,113,114,115]}]',
+        initialState: '{"alive":[{"39":[110]},{"40":[112]},{"41":[109,110,113,114,115]}],"sick":[{"42":[110,112]}]}',
 
         // Trail state
         trail: {
@@ -151,7 +151,7 @@
         },
 
         /**
-         * Load config from URL
+           Load config from URL
          */
         loadConfig: function () {
             var colors, grid, zoom;
@@ -186,10 +186,43 @@
         },
 
         /**
-         * Load world state from URL parameter
+           Load world state from URL parameter
+
+           The original `state` format looked like this:
+
+           [
+             { row: [ column, column, column, ... ]},
+             { row: [ column, column, column, ... ]},
+             { row: [ column, column, column, ... ]},
+             ...
+           ]
+
+           The new format, to accommodate sick cells, is now this:
+
+           {
+             alive: [
+               { row: [ column, column, column, ... ]},
+               { row: [ column, column, column, ... ]},
+               { row: [ column, column, column, ... ]},
+               ...
+             ],
+
+             sick: [
+               { row: [ column, column, column, ... ]},
+               { row: [ column, column, column, ... ]},
+               { row: [ column, column, column, ... ]},
+               ...
+             ]
+           }
+
+           In other words, the new format puts the old format in an object with two properties, `alive` and `sick`.
+
+           There is some risk for redundancy here if the same (row, column) is named in both properties, but the risk
+           of redundancy was present in the original version anyway if the user named the same row or column multiple
+           times.
          */
         loadState: function () {
-            var state, i, j, y, s = this.helpers.getUrlParameter('s');
+            let s = this.helpers.getUrlParameter('s');
 
             if (s === 'random') {
                 this.randomState();
@@ -198,14 +231,27 @@
                     s = this.initialState;
                 }
 
-                state = jsonParse(decodeURI(s));
-
-                for (i = 0; i < state.length; i += 1) {
-                    for (y in state[i]) {
-                        for (j = 0 ; j < state[i][y].length ; j += 1) {
-                            this.listLife.addCell(state[i][y][j], parseInt(y, 10), this.listLife.actualState);
+                let state = jsonParse(decodeURI(s));
+                let addCellStates = (stateArray, cellState) => {
+                    for (let i = 0; i < stateArray.length; i += 1) {
+                        for (let y in stateArray[i]) {
+                            for (let j = 0; j < stateArray[i][y].length; j += 1) {
+                                this.listLife.addCell(stateArray[i][y][j], parseInt(y, 10), this.listLife.actualState);
+                            }
                         }
                     }
+                };
+
+                if ($.isPlainObject(state)) {
+                    if (state.alive) {
+                        addCellStates(state.alive, ALIVE);
+                    }
+
+                    if (state.sick) {
+                        addCellStates(state.sick, SICK);
+                    }
+                } else if ($.isArray(state)) {
+                    addCellStates(state, ALIVE);
                 }
             }
         },
@@ -631,8 +677,39 @@
         },
 
         listLife: {
+            /**
+              To accommodate sick cells, the actualState structure has been changed from this:
 
-            actualState: [],
+              [
+                [ row, column, column, column, ... ],
+                [ row, column, column, column, ... ],
+                [ row, column, column, column, ... ],
+                ...
+              ]
+
+              (where the presence of a column number indicates that the cell is alive)
+
+              ...to this:
+
+              {
+                row: {
+                  column: ALIVE or SICK,
+                  column: ALIVE or SICK,
+                  column: ALIVE or SICK,
+                  ...
+                },
+
+                row: {
+                  column: ALIVE or SICK,
+                  column: ALIVE or SICK,
+                  column: ALIVE or SICK,
+                  ...
+                },
+
+                ...
+              }
+            */
+            actualState: {},
             redrawList: [],
 
             init: function () {
