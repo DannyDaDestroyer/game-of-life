@@ -7,8 +7,8 @@
  */
 
 (function () {
-    const ALIVE = true; // Done for backward compatibility, for now.
-    const DEAD = false;
+    const ALIVE = "A";
+    const DEAD = "D";
     const SICK = "S";
 
     var GOL = {
@@ -136,18 +136,14 @@
          * On Load Event
          */
         init: function () {
-            try {
-                this.listLife.init();   // Reset/init algorithm
-                this.loadConfig();      // Load config from URL (autoplay, colors, zoom, ...)
-                this.loadState();       // Load state from URL
-                this.keepDOMElements(); // Keep DOM References (getElementsById)
-                this.canvas.init();     // Init canvas GUI
-                this.registerEvents();  // Register event handlers
+            this.listLife.init();   // Reset/init algorithm
+            this.loadConfig();      // Load config from URL (autoplay, colors, zoom, ...)
+            this.loadState();       // Load state from URL
+            this.keepDOMElements(); // Keep DOM References (getElementsById)
+            this.canvas.init();     // Init canvas GUI
+            this.registerEvents();  // Register event handlers
 
-                this.prepare();
-            } catch (e) {
-                alert("Error: " + e);
-            }
+            this.prepare();
         },
 
         /**
@@ -236,7 +232,7 @@
                     for (let i = 0; i < stateArray.length; i += 1) {
                         for (let y in stateArray[i]) {
                             for (let j = 0; j < stateArray[i][y].length; j += 1) {
-                                this.listLife.addCell(stateArray[i][y][j], parseInt(y, 10), this.listLife.actualState);
+                                this.listLife.addCell(stateArray[i][y][j], parseInt(y, 10), this.listLife.actualState, cellState);
                             }
                         }
                     }
@@ -709,11 +705,10 @@
                 ...
               }
             */
-            actualState: {},
             redrawList: [],
 
             init: function () {
-                this.actualState = [];
+                this.actualState = {};
             },
 
             /**
@@ -922,16 +917,17 @@
             },
 
             isAlive: function (x, y) {
-                for (let i = 0; i < this.actualState.length; i += 1) {
-                    if (this.actualState[i][0] === y) {
-                        for (let j = 1; j < this.actualState[i].length; j += 1) {
-                            if (this.actualState[i][j] === x) {
-                                return true;
-                            }
-                        }
-                    }
+                let row = this.actualState[y];
+                if (!row) {
+                    return false;
                 }
-                return false;
+
+                let column = row[x];
+                if (!column) {
+                    return false;
+                }
+
+                return column === ALIVE;
             },
 
             removeCell: function (x, y, state) {
@@ -952,72 +948,14 @@
                 }
             },
 
-            addCell: function (x, y, state) {
-                if (state.length === 0) {
-                    state.push([y, x]);
-                    return;
+            addCell: function (x, y, state, cellState) {
+                let row = state[y];
+                if (!row) {
+                    state[y] = {};
+                    row = state[y];
                 }
 
-                var k, n, m, tempRow, newState = [], added;
-
-                if (y < state[0][0]) { // Add to Head
-                    newState = [[y, x]];
-                    for (k = 0; k < state.length; k += 1) {
-                        newState[k + 1] = state[k];
-                    }
-
-                    for (k = 0; k < newState.length; k += 1) {
-                        state[k] = newState[k];
-                    }
-
-                    return;
-
-                } else if (y > state[state.length - 1][0]) { // Add to Tail
-                    state[state.length] = [y, x];
-                    return;
-
-                } else { // Add to Middle
-
-                    for (n = 0; n < state.length; n += 1) {
-                        if (state[n][0] === y) { // Level Exists
-                            tempRow = [];
-                            added = false;
-                            for (m = 1; m < state[n].length; m += 1) {
-                                if ((!added) && (x < state[n][m])) {
-                                    tempRow.push(x);
-                                    added = !added;
-                                }
-                                tempRow.push(state[n][m]);
-                            }
-                            tempRow.unshift(y);
-                            if (!added) {
-                                tempRow.push(x);
-                            }
-                            state[n] = tempRow;
-                            return;
-                        }
-
-                        if (y < state[n][0]) { // Create Level
-                            newState = [];
-                            for (k = 0; k < state.length; k += 1) {
-                                if (k === n) {
-                                    newState[k] = [y,x];
-                                    newState[k + 1] = state[k];
-                                } else if (k < n) {
-                                    newState[k] = state[k];
-                                } else if (k > n) {
-                                    newState[k + 1] = state[k];
-                                }
-                            }
-
-                            for (k = 0; k < newState.length; k += 1) {
-                                state[k] = newState[k];
-                            }
-
-                            return;
-                        }
-                    }
-                }
+                row[x] = cellState;
             }
         },
 
