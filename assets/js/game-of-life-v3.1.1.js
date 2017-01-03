@@ -593,11 +593,7 @@
 
                 for (let i = 0; i < GOL.columns; i += 1) {
                     for (let j = 0; j < GOL.rows; j += 1) {
-                        if (GOL.listLife.isAlive(i, j)) {
-                            this.drawCell(i, j, ALIVE);
-                        } else {
-                            this.drawCell(i, j, DEAD);
-                        }
+                        this.drawCell(i, j, GOL.listLife.cellState(i, j) || DEAD);
                     }
                 }
             },
@@ -928,6 +924,20 @@
                 }
 
                 return column === ALIVE;
+            },
+
+            cellState: function (x, y) {
+                let row = this.actualState[y];
+                if (!row) {
+                    return null;
+                }
+
+                let column = row[x];
+                if (!column) {
+                    return null;
+                }
+
+                return column;
             },
 
             removeCell: function (x, y, state) {
