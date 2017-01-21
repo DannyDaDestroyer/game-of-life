@@ -330,18 +330,16 @@
          * Run Next Step
          */
         nextStep: function () {
-            var i, x, y, r, liveCellNumber, algorithmTime, guiTime;
-
             // Algorithm run
-            algorithmTime = new Date();
-            liveCellNumber = this.listLife.nextGeneration();
+            let algorithmTime = new Date();
+            let liveCellNumber = this.listLife.nextGeneration();
             algorithmTime = new Date() - algorithmTime;
 
             // Canvas run
-            guiTime = new Date();
-            for (i = 0; i < this.listLife.redrawList.length; i += 1) {
-                x = this.listLife.redrawList[i][0];
-                y = this.listLife.redrawList[i][1];
+            let guiTime = new Date();
+            for (let i = 0; i < this.listLife.redrawList.length; i += 1) {
+                let x = this.listLife.redrawList[i][0];
+                let y = this.listLife.redrawList[i][1];
 
                 if (this.listLife.redrawList[i][2] === 1) {
                     this.canvas.changeCelltoAlive(x, y);
@@ -352,7 +350,7 @@
                 }
             }
 
-            guiTime = (new Date()) - guiTime;
+            guiTime = new Date() - guiTime;
 
             // Pos-run updates
 
@@ -379,7 +377,7 @@
             this.element.generation.innerHTML = this.generation;
             this.element.livecells.innerHTML = liveCellNumber;
 
-            r = 1.0 / this.generation;
+            let r = 1.0 / this.generation;
             this.times.algorithm = (this.times.algorithm * (1 - r)) + (algorithmTime * r);
             this.times.gui = (this.times.gui * (1 - r)) + (guiTime * r);
             this.element.steptime.innerHTML = algorithmTime + ' / ' + guiTime + ' (' +
@@ -736,21 +734,21 @@
                 }
             */
             nextGeneration: function () {
-                var x, y, i, j, m, n, key, t1, t2, alive = 0;
-                var neighbours, deadNeighbours, allDeadNeighbours = {}, newState = [];
+                let alive = 0;
+                let allDeadNeighbours = {}, newState = [];
 
                 this.redrawList = [];
 
-                for (i = 0; i < this.actualState.length; i += 1) {
+                for (let i = 0; i < this.actualState.length; i += 1) {
                     this.topPointer = 1;
                     this.bottomPointer = 1;
 
-                    for (j = 1; j < this.actualState[i].length; j += 1) {
-                        x = this.actualState[i][j];
-                        y = this.actualState[i][0];
+                    for (let j = 1; j < this.actualState[i].length; j += 1) {
+                        let x = this.actualState[i][j];
+                        let y = this.actualState[i][0];
 
                         // Possible dead neighbours
-                        deadNeighbours = [
+                        let deadNeighbours = [
                             [x - 1, y - 1, 1],
                             [x, y - 1, 1],
                             [x + 1, y - 1, 1],
@@ -762,12 +760,12 @@
                         ];
 
                         // Get number of live neighbours and remove alive neighbours from deadNeighbours
-                        neighbours = this.getNeighboursFromAlive(x, y, i, deadNeighbours);
+                        let neighbours = this.getNeighboursFromAlive(x, y, i, deadNeighbours);
 
                         // Join dead neighbours to check list
-                        for (m = 0; m < 8; m += 1) {
+                        for (let m = 0; m < 8; m += 1) {
                             if (deadNeighbours[m] !== undefined) {
-                                key = deadNeighbours[m][0] + ',' + deadNeighbours[m][1]; // Create hashtable key
+                                let key = deadNeighbours[m][0] + ',' + deadNeighbours[m][1]; // Create hashtable key
 
                                 if (allDeadNeighbours[key] === undefined) {
                                     allDeadNeighbours[key] = 1;
@@ -788,11 +786,11 @@
                 }
 
                 // Process dead neighbours
-                for (key in allDeadNeighbours) {
+                for (let key in allDeadNeighbours) {
                     if (allDeadNeighbours[key] === 3) { // Add new Cell
                         key = key.split(',');
-                        t1 = parseInt(key[0], 10);
-                        t2 = parseInt(key[1], 10);
+                        let t1 = parseInt(key[0], 10);
+                        let t2 = parseInt(key[1], 10);
 
                         this.addCell(t1, t2, newState);
                         alive += 1;
