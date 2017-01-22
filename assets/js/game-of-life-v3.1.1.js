@@ -734,6 +734,8 @@
                 }
             */
             nextGeneration: function () {
+                let cellColumn = (x) => Math.abs(x);
+
                 let alive = 0;
                 let allDeadNeighbours = {}, newState = [];
 
@@ -744,7 +746,7 @@
                     this.bottomPointer = 1;
 
                     for (let j = 1; j < this.actualState[i].length; j += 1) {
-                        let x = this.actualState[i][j];
+                        let x = cellColumn(this.actualState[i][j]);
                         let y = this.actualState[i][0];
 
                         // Possible dead neighbours
@@ -809,29 +811,29 @@
 
             getNeighboursFromAlive: function (x, y, i, possibleNeighboursList) {
                 // This helper function considers all "sick" cells to be merely "alive."
-                let cellValue = (x) => Math.abs(x);
+                let cellColumn = (x) => Math.abs(x);
                 let neighbours = 0;
 
                 // Top
                 if (this.actualState[i - 1] !== undefined) {
                     if (this.actualState[i - 1][0] === (y - 1)) {
                         for (let k = this.topPointer; k < this.actualState[i - 1].length; k += 1) {
-                            let cell = cellValue(this.actualState[i - 1][k]);
-                            if (cell >= (x - 1)) {
+                            let column = cellColumn(this.actualState[i - 1][k]);
+                            if (column >= (x - 1)) {
 
-                                if (cell === (x - 1)) {
+                                if (column === (x - 1)) {
                                     possibleNeighboursList[0] = undefined;
                                     this.topPointer = k + 1;
                                     neighbours += 1;
                                 }
 
-                                if (cell === x) {
+                                if (column === x) {
                                     possibleNeighboursList[1] = undefined;
                                     this.topPointer = k;
                                     neighbours += 1;
                                 }
 
-                                if (cell === (x + 1)) {
+                                if (column === (x + 1)) {
                                     possibleNeighboursList[2] = undefined;
 
                                     if (k == 1) {
@@ -843,7 +845,7 @@
                                     neighbours += 1;
                                 }
 
-                                if (cell > (x + 1)) {
+                                if (column > (x + 1)) {
                                     break;
                                 }
                             }
@@ -853,20 +855,20 @@
 
                 // Middle
                 for (let k = 1; k < this.actualState[i].length; k += 1) {
-                    let cell = cellValue(this.actualState[i][k]);
-                    if (cell >= (x - 1)) {
+                    let column = cellColumn(this.actualState[i][k]);
+                    if (column >= (x - 1)) {
 
-                        if (cell === (x - 1)) {
+                        if (column === (x - 1)) {
                             possibleNeighboursList[3] = undefined;
                             neighbours += 1;
                         }
 
-                        if (cell === (x + 1)) {
+                        if (column === (x + 1)) {
                             possibleNeighboursList[4] = undefined;
                             neighbours += 1;
                         }
 
-                        if (cell > (x + 1)) {
+                        if (column > (x + 1)) {
                             break;
                         }
                     }
@@ -876,22 +878,22 @@
                 if (this.actualState[i + 1] !== undefined) {
                     if (this.actualState[i + 1][0] === (y + 1)) {
                         for (let k = this.bottomPointer; k < this.actualState[i + 1].length; k += 1) {
-                            let cell = cellValue(this.actualState[i + 1][k]);
-                            if (cell >= (x - 1)) {
+                            let column = cellColumn(this.actualState[i + 1][k]);
+                            if (column >= (x - 1)) {
 
-                                if (cell === (x - 1)) {
+                                if (column === (x - 1)) {
                                     possibleNeighboursList[5] = undefined;
                                     this.bottomPointer = k + 1;
                                     neighbours += 1;
                                 }
 
-                                if (cell === x) {
+                                if (column === x) {
                                     possibleNeighboursList[6] = undefined;
                                     this.bottomPointer = k;
                                     neighbours += 1;
                                 }
 
-                                if (cell === (x + 1)) {
+                                if (column === (x + 1)) {
                                     possibleNeighboursList[7] = undefined;
 
                                     if (k == 1) {
@@ -903,7 +905,7 @@
                                     neighbours += 1;
                                 }
 
-                                if (cell > (x + 1)) {
+                                if (column > (x + 1)) {
                                     break;
                                 }
                             }
@@ -915,10 +917,11 @@
             },
 
             isAlive: function (x, y) {
+                let cellColumn = (x) => Math.abs(x);
                 for (let i = 0; i < this.actualState.length; i += 1) {
                     if (this.actualState[i][0] === y) {
                         for (let j = 1; j < this.actualState[i].length; j += 1) {
-                            if (this.actualState[i][j] === x) {
+                            if (cellColumn(this.actualState[i][j]) === x) {
                                 return true;
                             }
                         }
