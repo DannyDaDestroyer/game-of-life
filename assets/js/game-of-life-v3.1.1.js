@@ -11,7 +11,14 @@
     const DEAD = "D";
     const SICK = "S";
 
-    var GOL = {
+    const KEEP_ALIVE = 2;
+    const CHANGE_TO_ALIVE = 1;
+    const CHANGE_TO_DEAD = 0;
+
+    let columnFor = x => Math.abs(x);
+    let columnValueFor = (x, cellState) => (cellState === SICK ? -1 : 1) * x;
+
+    let GOL = {
 
         columns: 0,
         rows: 0,
@@ -338,7 +345,10 @@
         nextStep: function () {
             // Algorithm run
             let algorithmTime = new Date();
-            let liveCellNumber = this.listLife.nextGeneration();
+
+            let rule = $("input[type=radio][name=rules]:checked").val() === "standard" ?
+                "nextGeneration" : "nextGenerationWithSick";
+            let liveCellNumber = this.listLife[rule]();
             algorithmTime = new Date() - algorithmTime;
 
             // Canvas run
@@ -347,9 +357,9 @@
                 let x = this.listLife.redrawList[i][0];
                 let y = this.listLife.redrawList[i][1];
 
-                if (this.listLife.redrawList[i][2] === 1) {
+                if (this.listLife.redrawList[i][2] === CHANGE_TO_ALIVE) {
                     this.canvas.changeCelltoAlive(x, y);
-                } else if (this.listLife.redrawList[i][2] === 2) {
+                } else if (this.listLife.redrawList[i][2] === KEEP_ALIVE) {
                     this.canvas.keepCellAlive(x, y);
                 } else {
                     this.canvas.changeCelltoDead(x, y);
@@ -640,7 +650,11 @@
             },
 
             switchCell: function (i, j) {
-                if (GOL.listLife.isAlive(i, j)) {
+                let state = GOL.listLife.cellState(i, j);
+                if (state === ALIVE) {
+                    this.changeCellToSick(i, j);
+                    GOL.listLife.setCell(i, j, GOL.listLife.actualState, SICK);
+                } else if (state === SICK) {
                     this.changeCelltoDead(i, j);
                     GOL.listLife.removeCell(i, j, GOL.listLife.actualState);
                 } else {
@@ -660,6 +674,13 @@
                 if (i >= 0 && i < GOL.columns && j >=0 && j < GOL.rows) {
                     this.age[i][j] = 1;
                     this.drawCell(i, j, ALIVE);
+                }
+            },
+
+            changeCellToSick: function (i, j) {
+                if (i >= 0 && i < GOL.columns && j >=0 && j < GOL.rows) {
+                    this.age[i][j] = 1;
+                    this.drawCell(i, j, SICK);
                 }
             },
 
@@ -740,8 +761,6 @@
                 }
             */
             nextGeneration: function () {
-                let cellColumn = (x) => Math.abs(x);
-
                 let alive = 0;
                 let allDeadNeighbours = {}, newState = [];
 
@@ -752,7 +771,7 @@
                     this.bottomPointer = 1;
 
                     for (let j = 1; j < this.actualState[i].length; j += 1) {
-                        let x = cellColumn(this.actualState[i][j]);
+                        let x = columnFor(this.actualState[i][j]);
                         let y = this.actualState[i][0];
 
                         // Possible dead neighbours
@@ -786,9 +805,9 @@
                         if (!(neighbours === 0 || neighbours === 1 || neighbours > 3)) {
                             this.addCell(x, y, newState);
                             alive += 1;
-                            this.redrawList.push([x, y, 2]); // Keep alive
+                            this.redrawList.push([x, y, KEEP_ALIVE]); // Keep alive
                         } else {
-                            this.redrawList.push([x, y, 0]); // Kill cell
+                            this.redrawList.push([x, y, CHANGE_TO_DEAD]); // Kill cell
                         }
                     }
                 }
@@ -802,7 +821,77 @@
 
                         this.addCell(t1, t2, newState);
                         alive += 1;
-                        this.redrawList.push([t1, t2, 1]);
+                        this.redrawList.push([t1, t2, CHANGE_TO_ALIVE]);
+                    }
+                }
+
+                this.actualState = newState;
+
+                return alive;
+            },
+
+            nextGenerationWithSick: function () {
+                let alive = 0;
+                let allDeadNeighbours = {}, newState = [];
+
+                this.redrawList = [];
+
+                for (let i = 0; i < this.actualState.length; i += 1) {
+                    this.topPointer = 1;
+                    this.bottomPointer = 1;
+
+                    for (let j = 1; j < this.actualState[i].length; j += 1) {
+                        let x = columnFor(this.actualState[i][j]);
+                        let y = this.actualState[i][0];
+
+                        // Possible dead neighbours
+                        let deadNeighbours = [
+                            [x - 1, y - 1, 1],
+                            [x, y - 1, 1],
+                            [x + 1, y - 1, 1],
+                            [x - 1, y, 1],
+                            [x + 1, y, 1],
+                            [x - 1, y + 1, 1],
+                            [x, y + 1, 1],
+                            [x + 1, y + 1, 1]
+                        ];
+
+                        // Get number of live neighbours and remove alive neighbours from deadNeighbours
+                        let neighbours = this.getNeighboursFromAlive(x, y, i, deadNeighbours);
+
+                        // Join dead neighbours to check list
+                        for (let m = 0; m < 8; m += 1) {
+                            if (deadNeighbours[m] !== undefined) {
+                                let key = deadNeighbours[m][0] + ',' + deadNeighbours[m][1]; // Create hashtable key
+
+                                if (allDeadNeighbours[key] === undefined) {
+                                    allDeadNeighbours[key] = 1;
+                                } else {
+                                    allDeadNeighbours[key] += 1;
+                                }
+                            }
+                        }
+
+                        if (!(neighbours === 0 || neighbours === 1 || neighbours > 3)) {
+                            this.addCell(x, y, newState);
+                            alive += 1;
+                            this.redrawList.push([x, y, KEEP_ALIVE]); // Keep alive
+                        } else {
+                            this.redrawList.push([x, y, CHANGE_TO_DEAD]); // Kill cell
+                        }
+                    }
+                }
+
+                // Process dead neighbours
+                for (let key in allDeadNeighbours) {
+                    if (allDeadNeighbours[key] === 3) { // Add new Cell
+                        key = key.split(',');
+                        let t1 = parseInt(key[0], 10);
+                        let t2 = parseInt(key[1], 10);
+
+                        this.addCell(t1, t2, newState);
+                        alive += 1;
+                        this.redrawList.push([t1, t2, CHANGE_TO_ALIVE]);
                     }
                 }
 
@@ -816,15 +905,13 @@
             bottomPointer: 1,
 
             getNeighboursFromAlive: function (x, y, i, possibleNeighboursList) {
-                // This helper function considers all "sick" cells to be merely "alive."
-                let cellColumn = (x) => Math.abs(x);
                 let neighbours = 0;
 
                 // Top
                 if (this.actualState[i - 1] !== undefined) {
                     if (this.actualState[i - 1][0] === (y - 1)) {
                         for (let k = this.topPointer; k < this.actualState[i - 1].length; k += 1) {
-                            let column = cellColumn(this.actualState[i - 1][k]);
+                            let column = columnFor(this.actualState[i - 1][k]);
                             if (column >= (x - 1)) {
 
                                 if (column === (x - 1)) {
@@ -861,7 +948,7 @@
 
                 // Middle
                 for (let k = 1; k < this.actualState[i].length; k += 1) {
-                    let column = cellColumn(this.actualState[i][k]);
+                    let column = columnFor(this.actualState[i][k]);
                     if (column >= (x - 1)) {
 
                         if (column === (x - 1)) {
@@ -884,7 +971,7 @@
                 if (this.actualState[i + 1] !== undefined) {
                     if (this.actualState[i + 1][0] === (y + 1)) {
                         for (let k = this.bottomPointer; k < this.actualState[i + 1].length; k += 1) {
-                            let column = cellColumn(this.actualState[i + 1][k]);
+                            let column = columnFor(this.actualState[i + 1][k]);
                             if (column >= (x - 1)) {
 
                                 if (column === (x - 1)) {
@@ -922,20 +1009,6 @@
                 return neighbours;
             },
 
-            isAlive: function (x, y) {
-                let cellColumn = (x) => Math.abs(x);
-                for (let i = 0; i < this.actualState.length; i += 1) {
-                    if (this.actualState[i][0] === y) {
-                        for (let j = 1; j < this.actualState[i].length; j += 1) {
-                            if (cellColumn(this.actualState[i][j]) === x) {
-                                return true;
-                            }
-                        }
-                    }
-                }
-                return false;
-            },
-
             cellState: function (x, y) {
                 for (let i = 0; i < this.actualState.length; i += 1) {
                     if (this.actualState[i][0] === y) {
@@ -952,17 +1025,27 @@
             },
 
             removeCell: function (x, y, state) {
-                var i, j;
-
-                for (i = 0; i < state.length; i += 1) {
+                for (let i = 0; i < state.length; i += 1) {
                     if (state[i][0] === y) {
                         if (state[i].length === 2) { // Remove all Row
                             state.splice(i, 1);
                         } else { // Remove Element
-                            for (j = 1; j < state[i].length; j += 1) {
+                            for (let j = 1; j < state[i].length; j += 1) {
                                 if (state[i][j] === x) {
                                     state[i].splice(j, 1);
                                 }
+                            }
+                        }
+                    }
+                }
+            },
+
+            setCell: function (x, y, state, cellState) {
+                for (let i = 0; i < this.actualState.length; i += 1) {
+                    if (this.actualState[i][0] === y) {
+                        for (let j = 1; j < this.actualState[i].length; j += 1) {
+                            if (columnFor(this.actualState[i][j]) === x) {
+                                this.actualState[i][j] = columnValueFor(x, cellState);
                             }
                         }
                     }
@@ -974,9 +1057,8 @@
                 // This is not an ideal representation choice, but it does accommodate the current logic
                 // for the prior data structure. A more radical refactor will be needed if additional cell
                 // states are to be supported by this code.
-                let columnFor = (x) => Math.abs(x);
                 let cellColumn = columnFor(x);
-                let cellValue = (cellState === SICK ? -1 : 1) * cellColumn;
+                let cellValue = columnValueFor(cellColumn, cellState);
 
                 if (state.length === 0) {
                     state.push([y, cellValue]);
