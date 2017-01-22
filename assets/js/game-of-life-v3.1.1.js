@@ -1021,7 +1021,7 @@
                         }
                     }
                 }
-                return false;
+                return DEAD;
             },
 
             removeCell: function (x, y, state) {
@@ -1031,7 +1031,7 @@
                             state.splice(i, 1);
                         } else { // Remove Element
                             for (let j = 1; j < state[i].length; j += 1) {
-                                if (state[i][j] === x) {
+                                if (columnFor(state[i][j]) === x) {
                                     state[i].splice(j, 1);
                                 }
                             }
