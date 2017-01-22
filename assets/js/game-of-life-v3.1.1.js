@@ -99,6 +99,12 @@
                     columns: 450,
                     rows: 216,
                     cellSize: 1
+                },
+
+                {
+                    columns: 90,
+                    rows: 43,
+                    cellSize: 8
                 }
             ]
         },
