@@ -14,6 +14,8 @@
     const KEEP_ALIVE = 2;
     const CHANGE_TO_ALIVE = 1;
     const CHANGE_TO_DEAD = 0;
+    const KEEP_SICK = 3;
+    const CHANGE_TO_SICK = 4;
 
     let columnFor = x => Math.abs(x);
     let columnValueFor = (x, cellState) => (cellState === SICK ? -1 : 1) * x;
@@ -361,6 +363,10 @@
                     this.canvas.changeCelltoAlive(x, y);
                 } else if (this.listLife.redrawList[i][2] === KEEP_ALIVE) {
                     this.canvas.keepCellAlive(x, y);
+                } else if (this.listLife.redrawList[i][2] === CHANGE_TO_SICK) {
+                    this.canvas.changeCellToSick(x, y);
+                } else if (this.listLife.redrawList[i][2] === KEEP_SICK) {
+                    this.canvas.keepCellSick(x, y);
                 } else {
                     this.canvas.changeCelltoDead(x, y);
                 }
@@ -670,6 +676,13 @@
                 }
             },
 
+            keepCellSick: function (i, j) {
+                if (i >= 0 && i < GOL.columns && j >=0 && j < GOL.rows) {
+                    this.age[i][j] += 1;
+                    this.drawCell(i, j, SICK);
+                }
+            },
+
             changeCelltoAlive: function (i, j) {
                 if (i >= 0 && i < GOL.columns && j >=0 && j < GOL.rows) {
                     this.age[i][j] = 1;
@@ -830,6 +843,7 @@
                 return alive;
             },
 
+            // Yes this is a lot of copied code. No time to redesign.
             nextGenerationWithSick: function () {
                 let alive = 0;
                 let allDeadNeighbours = {}, newState = [];
@@ -857,25 +871,37 @@
                         ];
 
                         // Get number of live neighbours and remove alive neighbours from deadNeighbours
-                        let neighbours = this.getNeighboursFromAlive(x, y, i, deadNeighbours);
+                        let [neighbours, sick] = this.getNeighboursFromAliveWithSick(x, y, i, deadNeighbours);
 
-                        // Join dead neighbours to check list
-                        for (let m = 0; m < 8; m += 1) {
-                            if (deadNeighbours[m] !== undefined) {
-                                let key = deadNeighbours[m][0] + ',' + deadNeighbours[m][1]; // Create hashtable key
+                        // Join dead neighbours to check list if not sick.
+                        if (this.actualState[i][j] >= 0) {
+                            for (let m = 0; m < 8; m += 1) {
+                                if (deadNeighbours[m] !== undefined) {
+                                    let key = deadNeighbours[m][0] + ',' + deadNeighbours[m][1]; // Create hashtable key
 
-                                if (allDeadNeighbours[key] === undefined) {
-                                    allDeadNeighbours[key] = 1;
-                                } else {
-                                    allDeadNeighbours[key] += 1;
+                                    if (allDeadNeighbours[key] === undefined) {
+                                        allDeadNeighbours[key] = 1;
+                                    } else {
+                                        allDeadNeighbours[key] += 1;
+                                    }
                                 }
                             }
                         }
 
                         if (!(neighbours === 0 || neighbours === 1 || neighbours > 3)) {
-                            this.addCell(x, y, newState);
                             alive += 1;
-                            this.redrawList.push([x, y, KEEP_ALIVE]); // Keep alive
+                            if (this.actualState[i][j] < 0) {
+                                this.addCell(x, y, newState, SICK);
+                                this.redrawList.push([x, y, KEEP_SICK]);
+                            } else {
+                                if (sick) {
+                                    this.addCell(x, y, newState, SICK);
+                                    this.redrawList.push([x, y, CHANGE_TO_SICK]);
+                                } else {
+                                    this.addCell(x, y, newState, ALIVE);
+                                    this.redrawList.push([x, y, KEEP_ALIVE]); // Keep alive
+                                }
+                            }
                         } else {
                             this.redrawList.push([x, y, CHANGE_TO_DEAD]); // Kill cell
                         }
@@ -929,7 +955,7 @@
                                 if (column === (x + 1)) {
                                     possibleNeighboursList[2] = undefined;
 
-                                    if (k == 1) {
+                                    if (k === 1) {
                                         this.topPointer = 1;
                                     } else {
                                         this.topPointer = k - 1;
@@ -989,7 +1015,7 @@
                                 if (column === (x + 1)) {
                                     possibleNeighboursList[7] = undefined;
 
-                                    if (k == 1) {
+                                    if (k === 1) {
                                         this.bottomPointer = 1;
                                     } else {
                                         this.bottomPointer = k - 1;
@@ -1007,6 +1033,140 @@
                 }
 
                 return neighbours;
+            },
+
+            // Repetitive code; needs consolidation.
+            getNeighboursFromAliveWithSick: function (x, y, i, possibleNeighboursList) {
+                let neighbours = 0;
+                let sick = false;
+
+                // Top
+                if (this.actualState[i - 1] !== undefined) {
+                    if (this.actualState[i - 1][0] === (y - 1)) {
+                        for (let k = this.topPointer; k < this.actualState[i - 1].length; k += 1) {
+                            let state = this.actualState[i - 1][k];
+                            let column = columnFor(state);
+                            if (column >= (x - 1)) {
+
+                                if (column === (x - 1)) {
+                                    possibleNeighboursList[0] = undefined;
+                                    this.topPointer = k + 1;
+                                    neighbours += 1;
+                                    if (state < 0) {
+                                        sick = true;
+                                    }
+                                }
+
+                                if (column === x) {
+                                    possibleNeighboursList[1] = undefined;
+                                    this.topPointer = k;
+                                    neighbours += 1;
+                                    if (state < 0) {
+                                        sick = true;
+                                    }
+                                }
+
+                                if (column === (x + 1)) {
+                                    possibleNeighboursList[2] = undefined;
+
+                                    if (k === 1) {
+                                        this.topPointer = 1;
+                                    } else {
+                                        this.topPointer = k - 1;
+                                    }
+
+                                    neighbours += 1;
+                                    if (state < 0) {
+                                        sick = true;
+                                    }
+                                }
+
+                                if (column > (x + 1)) {
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // Middle
+                for (let k = 1; k < this.actualState[i].length; k += 1) {
+                    let state = this.actualState[i][k];
+                    let column = columnFor(state);
+                    if (column >= (x - 1)) {
+
+                        if (column === (x - 1)) {
+                            possibleNeighboursList[3] = undefined;
+                            neighbours += 1;
+                            if (state < 0) {
+                                sick = true;
+                            }
+                        }
+
+                        if (column === (x + 1)) {
+                            possibleNeighboursList[4] = undefined;
+                            neighbours += 1;
+                            if (state < 0) {
+                                sick = true;
+                            }
+                        }
+
+                        if (column > (x + 1)) {
+                            break;
+                        }
+                    }
+                }
+
+                // Bottom
+                if (this.actualState[i + 1] !== undefined) {
+                    if (this.actualState[i + 1][0] === (y + 1)) {
+                        for (let k = this.bottomPointer; k < this.actualState[i + 1].length; k += 1) {
+                            let state = this.actualState[i + 1][k];
+                            let column = columnFor(state);
+                            if (column >= (x - 1)) {
+
+                                if (column === (x - 1)) {
+                                    possibleNeighboursList[5] = undefined;
+                                    this.bottomPointer = k + 1;
+                                    neighbours += 1;
+                                    if (state < 0) {
+                                        sick = true;
+                                    }
+                                }
+
+                                if (column === x) {
+                                    possibleNeighboursList[6] = undefined;
+                                    this.bottomPointer = k;
+                                    neighbours += 1;
+                                    if (state < 0) {
+                                        sick = true;
+                                    }
+                                }
+
+                                if (column === (x + 1)) {
+                                    possibleNeighboursList[7] = undefined;
+
+                                    if (k === 1) {
+                                        this.bottomPointer = 1;
+                                    } else {
+                                        this.bottomPointer = k - 1;
+                                    }
+
+                                    neighbours += 1;
+                                    if (state < 0) {
+                                        sick = true;
+                                    }
+                                }
+
+                                if (column > (x + 1)) {
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                }
+
+                return [neighbours, sick];
             },
 
             cellState: function (x, y) {
