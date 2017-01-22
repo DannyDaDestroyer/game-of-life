@@ -702,7 +702,7 @@
             redrawList: [],
 
             init: function () {
-                this.actualState = {};
+                this.actualState = [];
             },
 
             /**
@@ -808,28 +808,30 @@
             bottomPointer: 1,
 
             getNeighboursFromAlive: function (x, y, i, possibleNeighboursList) {
-                var neighbours = 0, k;
+                // This helper function considers all "sick" cells to be merely "alive."
+                let cellValue = (x) => Math.abs(x);
+                let neighbours = 0;
 
                 // Top
                 if (this.actualState[i - 1] !== undefined) {
                     if (this.actualState[i - 1][0] === (y - 1)) {
-                        for (k = this.topPointer; k < this.actualState[i - 1].length; k += 1) {
+                        for (let k = this.topPointer; k < this.actualState[i - 1].length; k += 1) {
+                            let cell = cellValue(this.actualState[i - 1][k]);
+                            if (cell >= (x - 1)) {
 
-                            if (this.actualState[i - 1][k] >= (x - 1)) {
-
-                                if (this.actualState[i - 1][k] === (x - 1)) {
+                                if (cell === (x - 1)) {
                                     possibleNeighboursList[0] = undefined;
                                     this.topPointer = k + 1;
                                     neighbours += 1;
                                 }
 
-                                if (this.actualState[i - 1][k] === x) {
+                                if (cell === x) {
                                     possibleNeighboursList[1] = undefined;
                                     this.topPointer = k;
                                     neighbours += 1;
                                 }
 
-                                if (this.actualState[i - 1][k] === (x + 1)) {
+                                if (cell === (x + 1)) {
                                     possibleNeighboursList[2] = undefined;
 
                                     if (k == 1) {
@@ -841,7 +843,7 @@
                                     neighbours += 1;
                                 }
 
-                                if (this.actualState[i - 1][k] > (x + 1)) {
+                                if (cell > (x + 1)) {
                                     break;
                                 }
                             }
@@ -850,20 +852,21 @@
                 }
 
                 // Middle
-                for (k = 1; k < this.actualState[i].length; k += 1) {
-                    if (this.actualState[i][k] >= (x - 1)) {
+                for (let k = 1; k < this.actualState[i].length; k += 1) {
+                    let cell = cellValue(this.actualState[i][k]);
+                    if (cell >= (x - 1)) {
 
-                        if (this.actualState[i][k] === (x - 1)) {
+                        if (cell === (x - 1)) {
                             possibleNeighboursList[3] = undefined;
                             neighbours += 1;
                         }
 
-                        if (this.actualState[i][k] === (x + 1)) {
+                        if (cell === (x + 1)) {
                             possibleNeighboursList[4] = undefined;
                             neighbours += 1;
                         }
 
-                        if (this.actualState[i][k] > (x + 1)) {
+                        if (cell > (x + 1)) {
                             break;
                         }
                     }
@@ -872,22 +875,23 @@
                 // Bottom
                 if (this.actualState[i + 1] !== undefined) {
                     if (this.actualState[i + 1][0] === (y + 1)) {
-                        for (k = this.bottomPointer; k < this.actualState[i + 1].length; k += 1) {
-                            if (this.actualState[i + 1][k] >= (x - 1)) {
+                        for (let k = this.bottomPointer; k < this.actualState[i + 1].length; k += 1) {
+                            let cell = cellValue(this.actualState[i + 1][k]);
+                            if (cell >= (x - 1)) {
 
-                                if (this.actualState[i + 1][k] === (x - 1)) {
+                                if (cell === (x - 1)) {
                                     possibleNeighboursList[5] = undefined;
                                     this.bottomPointer = k + 1;
                                     neighbours += 1;
                                 }
 
-                                if (this.actualState[i + 1][k] === x) {
+                                if (cell === x) {
                                     possibleNeighboursList[6] = undefined;
                                     this.bottomPointer = k;
                                     neighbours += 1;
                                 }
 
-                                if (this.actualState[i + 1][k] === (x + 1)) {
+                                if (cell === (x + 1)) {
                                     possibleNeighboursList[7] = undefined;
 
                                     if (k == 1) {
@@ -899,7 +903,7 @@
                                     neighbours += 1;
                                 }
 
-                                if (this.actualState[i + 1][k] > (x + 1)) {
+                                if (cell > (x + 1)) {
                                     break;
                                 }
                             }
@@ -911,31 +915,31 @@
             },
 
             isAlive: function (x, y) {
-                let row = this.actualState[y];
-                if (!row) {
-                    return false;
+                for (let i = 0; i < this.actualState.length; i += 1) {
+                    if (this.actualState[i][0] === y) {
+                        for (let j = 1; j < this.actualState[i].length; j += 1) {
+                            if (this.actualState[i][j] === x) {
+                                return true;
+                            }
+                        }
+                    }
                 }
-
-                let column = row[x];
-                if (!column) {
-                    return false;
-                }
-
-                return column === ALIVE;
+                return false;
             },
 
             cellState: function (x, y) {
-                let row = this.actualState[y];
-                if (!row) {
-                    return null;
+                for (let i = 0; i < this.actualState.length; i += 1) {
+                    if (this.actualState[i][0] === y) {
+                        for (let j = 1; j < this.actualState[i].length; j += 1) {
+                            if (this.actualState[i][j] === x) {
+                                return ALIVE;
+                            } else if (-this.actualState[i][j] === x) {
+                                return SICK;
+                            }
+                        }
+                    }
                 }
-
-                let column = row[x];
-                if (!column) {
-                    return null;
-                }
-
-                return column;
+                return false;
             },
 
             removeCell: function (x, y, state) {
@@ -957,13 +961,79 @@
             },
 
             addCell: function (x, y, state, cellState) {
-                let row = state[y];
-                if (!row) {
-                    state[y] = {};
-                    row = state[y];
+                // Sick cells are encoded as the negative of their column.
+                // This is not an ideal representation choice, but it does accommodate the current logic
+                // for the prior data structure. A more radical refactor will be needed if additional cell
+                // states are to be supported by this code.
+                let columnFor = (x) => Math.abs(x);
+                let cellColumn = columnFor(x);
+                let cellValue = (cellState === SICK ? -1 : 1) * cellColumn;
+
+                if (state.length === 0) {
+                    state.push([y, cellValue]);
+                    return;
                 }
 
-                row[x] = cellState;
+                let newState = [];
+
+                if (y < state[0][0]) { // Add to Head
+                    newState = [[y, cellValue]];
+                    for (let k = 0; k < state.length; k += 1) {
+                        newState[k + 1] = state[k];
+                    }
+
+                    for (let k = 0; k < newState.length; k += 1) {
+                        state[k] = newState[k];
+                    }
+
+                    return;
+
+                } else if (y > state[state.length - 1][0]) { // Add to Tail
+                    state[state.length] = [y, cellValue];
+                    return;
+
+                } else { // Add to Middle
+
+                    for (let n = 0; n < state.length; n += 1) {
+                        if (state[n][0] === y) { // Level Exists
+                            let tempRow = [];
+                            let added = false;
+                            for (let m = 1; m < state[n].length; m += 1) {
+                                if ((!added) && (cellColumn < columnFor(state[n][m]))) {
+                                    tempRow.push(cellValue);
+                                    added = !added;
+                                }
+                                tempRow.push(state[n][m]);
+                            }
+                            tempRow.unshift(y);
+                            if (!added) {
+                                tempRow.push(cellValue);
+                            }
+                            state[n] = tempRow;
+                            return;
+                        }
+
+                        if (y < state[n][0]) { // Create Level
+                            newState = [];
+                            for (let k = 0; k < state.length; k += 1) {
+                                if (k === n) {
+                                    newState[k] = [y, cellValue];
+                                    newState[k + 1] = state[k];
+                                } else if (k < n) {
+                                    newState[k] = state[k];
+                                } else if (k > n) {
+                                    newState[k + 1] = state[k];
+                                }
+                            }
+
+                            for (let k = 0; k < newState.length; k += 1) {
+                                state[k] = newState[k];
+                            }
+
+                            return;
+                        }
+                    }
+                }
             }
         },
 
