@@ -521,29 +521,60 @@
                 },
 
                 export_: function () {
-                    var i, j, url = '', cellState = '', params = '';
+                    let result = {};
 
-                    for (i = 0; i < GOL.listLife.actualState.length; i += 1) {
-                        cellState += '{"' + GOL.listLife.actualState[i][0] + '":[';
-                        //cellState += '{"one":[';
-                        for (j = 1; j < GOL.listLife.actualState[i].length; j += 1) {
-                            cellState += GOL.listLife.actualState[i][j] + ',';
+                    let alive = [];
+                    for (let i = 0; i < GOL.listLife.actualState.length; i += 1) {
+                        let row = "" + GOL.listLife.actualState[i][0];
+                        let columns = [];
+                        for (let j = 1; j < GOL.listLife.actualState[i].length; j += 1) {
+                            let cell = GOL.listLife.actualState[i][j];
+                            if (cell >= 0) {
+                                columns.push(cell);
+                            }
                         }
-                        cellState = cellState.substring(0, cellState.length - 1) + ']},';
+
+                        if (columns.length) {
+                            let rowObject = {};
+                            rowObject[row] = columns;
+                            alive.push(rowObject);
+                        }
+                    }
+                    if (alive.length) {
+                        result.alive = alive;
                     }
 
-                    cellState = cellState.substring(0, cellState.length - 1) + '';
+                    let sick = [];
+                    for (let i = 0; i < GOL.listLife.actualState.length; i += 1) {
+                        let row = "" + GOL.listLife.actualState[i][0];
+                        let columns = [];
+                        for (let j = 1; j < GOL.listLife.actualState[i].length; j += 1) {
+                            let cell = GOL.listLife.actualState[i][j];
+                            if (cell < 0) {
+                                columns.push(Math.abs(cell));
+                            }
+                        }
 
-                    if (cellState.length !== 0) {
-                        url = (window.location.href.indexOf('?') === -1) ?
+                        if (columns.length) {
+                            let rowObject = {};
+                            rowObject[row] = columns;
+                            sick.push(rowObject);
+                        }
+                    }
+                    if (sick.length) {
+                        result.sick = sick;
+                    }
+
+                    if (result.alive || result.sick) {
+                        let url = (window.location.href.indexOf('?') === -1) ?
                             window.location.href : window.location.href.slice(0, window.location.href.indexOf('?'));
 
-                        params = '?autoplay=0' +
+                        let params = '?autoplay=0' +
                             '&trail=' + (GOL.trail.current ? '1' : '0') +
                             '&grid=' + (GOL.grid.current + 1) +
                             '&colors=' + (GOL.colors.current + 1) +
                             '&zoom=' + (GOL.zoom.current + 1) +
-                            '&s=['+ cellState +']';
+                            '&s='+ JSON.stringify(result.sick ? result : result.alive);
 
                         document.getElementById('exportUrlLink').href = params;
                         document.getElementById('exportTinyUrlLink').href = 'http://tinyurl.com/api-create.php?url=' +
